@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>炼金合成系统模拟器 V2.1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        body {
+            background-color: #f5f1e6;
+            padding: 20px;
+            background-image: linear-gradient(to bottom right, #f5f1e6, #e8e0d0);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+        }
+        /* 左侧区域样式 */
+        .left-panel {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(139, 90, 43, 0.2);
+            height: fit-content;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border: 1px solid #d2b48c;
+        }
+        .rule-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #8b5a2b;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #d2b48c;
+        }
+        .rule-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .unlocked-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #8b5a2b;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #d2b48c;
+        }
+        .recipe-list {
+            list-style: none;
+        }
+        .recipe-item {
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            background-color: #f9f6f0;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+            transition: all 0.2s;
+            position: relative;
+            border: 1px solid #e0d0b0;
+        }
+        .recipe-item.active {
+            background-color: #d2b48c;
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(139, 90, 43, 0.3);
+        }
+        .recipe-item:hover:not(.active) {
+            background-color: #f0e6d2;
+            transform: translateY(-2px);
+        }
+        .recipe-tooltip {
+            position: absolute;
+            top: -150px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 250px;
+            background-color: #333;
+            color: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.4;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+        .recipe-item:hover .recipe-tooltip {
+            display: block;
+        }
+        .recipe-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+
+        /* 资产和购买按钮样式 */
+        .player-assets {
+            background-color: #f9f6f0;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #8b5a2b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #d2b48c;
+            box-shadow: 0 2px 5px rgba(139, 90, 43, 0.1);
+        }
+        .buy-btn {
+            padding: 8px 15px;
+            background-color: #8b5a2b;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(139, 90, 43, 0.3);
+        }
+        .buy-btn:hover {
+            background-color: #6d4c2f;
+            transform: translateY(-2px);
+        }
+        .buy-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 中间区域样式 */
+        .middle-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        /* 合成台样式 */
+        .synthesis-panel {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(139, 90, 43, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid #d2b48c;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="%23d2b48c" stroke-width="0.5" stroke-dasharray="5,5"/></svg>');
+        }
+        .synthesis-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #8b5a2b;
+            margin-bottom: 25px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            letter-spacing: 1px;
+        }
+        .control-buttons {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .reset-btn {
+            padding: 8px 15px;
+            background-color: #a0522d;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(139, 90, 43, 0.3);
+        }
+        .reset-btn:hover {
+            background-color: #8b4513;
+            transform: translateY(-2px);
+        }
+        .synthesis-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .slot {
+            width: 120px;
+            height: 120px;
+            border: 2px dashed #d2b48c;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: #f9f6f0;
+            position: relative;
+            box-shadow: 0 3px 8px rgba(139, 90, 43, 0.1);
+        }
+        .slot.recipe-only {
+            border-color: #8b5a2b;
+        }
+        .slot.active {
+            border-color: #8b5a2b;
+            background-color: #f0e6d2;
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(139, 90, 43, 0.3);
+        }
+        .slot-title {
+            font-size: 14px;
+            color: #8b5a2b;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .slot-content {
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 5px;
+        }
+        .slot-tooltip {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 250px;
+            background-color: #333;
+            color: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.4;
+            display: none;
+            z-index: 100;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+        .slot:hover .slot-tooltip {
+            display: block;
+        }
+        .arrow {
+            font-size: 24px;
+            color: #d2b48c;
+            font-weight: bold;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
+        }
+        .synthesize-btn {
+            padding: 12px 30px;
+            background-color: #8b5a2b;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 8px rgba(139, 90, 43, 0.4);
+        }
+        .synthesize-btn:hover {
+            background-color: #6d4c2f;
+            transform: translateY(-3px);
+        }
+        .synthesize-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 材料库样式 */
+        .materials-panel {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(139, 90, 43, 0.2);
+            border: 1px solid #d2b48c;
+        }
+        .materials-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #8b5a2b;
+            margin-bottom: 15px;
+            text-align: center;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
+        }
+        .materials-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .material-item {
+            padding: 10px 8px;
+            border-radius: 4px;
+            background-color: #f9f6f0;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+            transition: all 0.2s;
+            position: relative;
+            text-align: center;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+            border: 1px solid #e0d0b0;
+            box-shadow: 0 2px 5px rgba(139, 90, 43, 0.1);
+        }
+        .material-item.flash {
+            animation: flash 1.5s infinite;
+        }
+        @keyframes flash {
+            0%,100% { background-color: #f9f6f0; }
+            50% { background-color: #fff3cd; }
+        }
+        .material-item:hover {
+            background-color: #f0e6d2;
+            border: 1px solid #d2b48c;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(139, 90, 43, 0.2);
+        }
+        .material-tooltip {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            background-color: #333;
+            color: #fff;
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            line-height: 1.3;
+            display: none;
+            z-index: 2;
+            pointer-events: none;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+        .material-item:hover .material-tooltip {
+            display: block;
+        }
+
+        /* 成品弹窗样式 */
+        .result-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+        .modal-content {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 25px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border: 3px solid #d2b48c;
+            background: linear-gradient(to bottom, #fff, #f9f6f0);
+        }
+        .result-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #8b5a2b;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
+        }
+        .result-attr {
+            margin-bottom: 12px;
+            font-size: 16px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+        }
+        .result-attr span {
+            font-weight: bold;
+            color: #8b5a2b;
+        }
+        .result-effects {
+            margin: 15px 0;
+        }
+        .effect-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #8b5a2b;
+            margin-bottom: 8px;
+        }
+        .effect-list {
+            list-style: disc;
+            margin-left: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        .result-score {
+            font-size: 18px;
+            font-weight: bold;
+            color: #8b5a2b;
+            text-align: center;
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f9f6f0;
+        }
+        .unlock-notice {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid #ffdf7e;
+        }
+        .close-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #8b5a2b;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(139, 90, 43, 0.3);
+        }
+        .close-btn:hover {
+            background-color: #6d4c2f;
+        }
+        
+        /* 新增：配方提示中的解锁材料样式 */
+        .unlock-hint {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #777;
+            color: #ffcc66;
+        }
+        
+        /* 消耗材料提示 */
+        .consumed-materials {
+            background-color: #e8f4e8;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid #a5d6a7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧规则与已解锁配方区 -->
+        <div class="left-panel">
+            <div class="rule-title">合成规则</div>
+            <div class="rule-desc">选择配方，放入底料、主料、辅料，合成成品。材料属性影响成品数值，不同属性材料可继承特殊效果。</div>
+            
+            <!-- 玩家资产和购买按钮 -->
+            <div class="player-assets">
+                <span>玩家资产：</span>
+                <span id="playerAssetsValue">600</span>
+            </div>
+            <button class="buy-btn" id="buyBtn">购买材料（300）</button>
+            
+            <div class="unlocked-title">已解锁配方</div>
+            <ul class="recipe-list" id="recipeList">
+                <li class="recipe-item" data-id="ironSword">
+                    铁剑
+                    <div class="recipe-tooltip">
+                        基础属性：<br>
+                        阳: ++<br>
+                        中: ++<br>
+                        阴: ++
+                        <div class="unlock-hint">
+                            若辅以火铜锭、寒铁锭的话...
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 中间区域 -->
+        <div class="middle-section">
+            <!-- 合成台区域 -->
+            <div class="synthesis-panel">
+                <div class="synthesis-title">炼金合成台</div>
+                
+                <div class="control-buttons">
+                    <button class="reset-btn" id="resetBtn">重新选择</button>
+                </div>
+                
+                <div class="synthesis-row">
+                    <div class="slot recipe-only" id="recipeSlot">
+                        <div class="slot-title">配方</div>
+                        <div class="slot-content" id="recipeContent">未选择</div>
+                        <div class="slot-tooltip">点击选择配方（仅可放置配方[左侧]）</div>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="slot" id="baseSlot">
+                        <div class="slot-title">底料</div>
+                        <div class="slot-content" id="baseContent">未选择</div>
+                        <div class="slot-tooltip">底料加分规则：成品属性 = 基础属性 + 底料效率 × 2 × 主料属性 + 底料效率 × 辅料属性</div>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="slot" id="mainSlot">
+                        <div class="slot-title">主料</div>
+                        <div class="slot-content" id="mainContent">未选择</div>
+                        <div class="slot-tooltip">主料加分规则：成品属性会受到底料效率影响，计算方式为底料效率 × 2 × 主料属性</div>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="slot" id="auxSlot">
+                        <div class="slot-title">辅料</div>
+                        <div class="slot-content" id="auxContent">未选择</div>
+                        <div class="slot-tooltip">辅料加分规则：成品属性会受到底料效率影响，计算方式为底料效率 × 辅料属性<br><br>放入闪光材料可以改变合成路线，解锁配方！</div>
+                    </div>
+                    <div class="arrow">→</div>
+                    <button class="synthesize-btn" id="synthesizeBtn" disabled>合成</button>
+                </div>
+            </div>
+
+            <!-- 材料库区域 -->
+            <div class="materials-panel">
+                <div class="materials-title">材料库</div>
+                <div class="materials-container" id="materialsContainer">
+                    <!-- 材料项由JS动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 成品结果弹窗 -->
+    <div class="result-modal" id="resultModal">
+        <div class="modal-content">
+            <div class="result-title" id="resultName">铁剑</div>
+            
+            <div class="unlock-notice" id="unlockNotice">解锁新配方【赤炎长剑】，现可选择赤炎长剑作为配方！</div>
+            
+            <div class="consumed-materials" id="consumedMaterials">
+                消耗材料：铁锭（阴）、火铜锭（阳）、寒铁锭（阴）
+            </div>
+            
+            <div class="result-attr">攻击力：<span id="resultAttack">0</span></div>
+            <div class="result-attr">防御力：<span id="resultDefense">0</span></div>
+            <div class="result-attr">魔法适应力：<span id="resultMagic">0</span></div>
+            
+            <div class="result-effects">
+                <div class="effect-title">特殊效果：</div>
+                <ul class="effect-list" id="resultEffects">
+                    <!-- 效果由JS动态生成 -->
+                </ul>
+            </div>
+            
+            <div class="result-score" id="resultScore">评分：A</div>
+            
+            <button class="close-btn" id="closeBtn">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. 数据定义 - 材料数据
+        const materialsData = [
+            // 铁锭系列
+            {
+                id: 'ironYin',
+                name: '铁锭（阴）',
+                yang: 50,
+                zhong: 20,
+                yin: 15,
+                float: '小',
+                effect: '坚固（格挡率提升15%）',
+                mainAttr: '阴',
+                isRandom: false
+            },
+            {
+                id: 'ironZhong',
+                name: '铁锭（中）',
+                yang: 33,
+                zhong: 33,
+                yin: 33,
+                float: '小',
+                effect: '坚固（格挡大幅提升45%）',
+                mainAttr: '中',
+                isRandom: false
+            },
+            {
+                id: 'ironYang',
+                name: '铁锭（阳）',
+                yang: 60,
+                zhong: 20,
+                yin: 20,
+                float: '小',
+                effect: '坚固（格挡提升15%）',
+                mainAttr: '阳',
+                isRandom: false
+            },
+            // 火铜锭系列
+            {
+                id: 'fireCopperYin',
+                name: '火铜锭（阴）',
+                yang: 33,
+                zhong: 35,
+                yin: 45,
+                float: '大',
+                effect: '附带10%火焰伤害',
+                mainAttr: '阴',
+                isRandom: false
+            },
+            {
+                id: 'fireCopperZhong',
+                name: '火铜锭（中）',
+                yang: 70,
+                zhong: 30,
+                yin: 5,
+                float: '大',
+                effect: '附带10%火焰伤害',
+                mainAttr: '中',
+                isRandom: false
+            },
+            {
+                id: 'fireCopperYang',
+                name: '火铜锭（阳）',
+                yang: 100,
+                zhong: 15,
+                yin: 0,
+                float: '大',
+                effect: '附带30%火焰伤害',
+                mainAttr: '阳',
+                isRandom: false
+            },
+            // 寒铁锭系列
+            {
+                id: 'coldIronYin',
+                name: '寒铁锭（阴）',
+                yang: 0,
+                zhong: 15,
+                yin: 100,
+                float: '大',
+                effect: '格挡反弹30%寒冰伤害',
+                mainAttr: '阴',
+                isRandom: false
+            },
+            {
+                id: 'coldIronZhong',
+                name: '寒铁锭（中）',
+                yang: 5,
+                zhong: 30,
+                yin: 70,
+                float: '大',
+                effect: '格挡反弹10%寒冰伤害',
+                mainAttr: '中',
+                isRandom: false
+            },
+            {
+                id: 'coldIronYang',
+                name: '寒铁锭（阳）',
+                yang: 45,
+                zhong: 33,
+                yin: 35,
+                float: '大',
+                effect: '格挡反弹10%寒冰伤害',
+                mainAttr: '阳',
+                isRandom: false
+            },
+            // 金锭系列
+            {
+                id: 'goldYin',
+                name: '金锭（阴）',
+                yang: 20,
+                zhong: 40,
+                yin: 70,
+                float: '小',
+                effect: '卖出价值提升50%',
+                mainAttr: '阴',
+                isRandom: false
+            },
+            {
+                id: 'goldZhong',
+                name: '金锭（中）',
+                yang: 40,
+                zhong: 50,
+                yin: 30,
+                float: '小',
+                effect: '卖出价值提升100%',
+                mainAttr: '中',
+                isRandom: false
+            },
+            {
+                id: 'goldYang',
+                name: '金锭（阳）',
+                yang: 70,
+                zhong: 40,
+                yin: 20,
+                float: '小',
+                effect: '卖出价值提升50%',
+                mainAttr: '阳',
+                isRandom: false
+            },
+            // 返魂叶系列
+            {
+                id: 'reviveLeafYin',
+                name: '返魂叶（阴）',
+                yang: 20,
+                zhong: 70,
+                yin: 0,
+                float: '中',
+                effect: '击杀敌人后奴役其灵魂90秒',
+                mainAttr: '阴',
+                isRandom: false
+            },
+            {
+                id: 'reviveLeafZhong',
+                name: '返魂叶（中）',
+                yang: 0,
+                zhong: 100,
+                yin: 0,
+                float: '中',
+                effect: '击杀敌人后奴役其灵魂30秒',
+                mainAttr: '中',
+                isRandom: false
+            },
+            {
+                id: 'reviveLeafYang',
+                name: '返魂叶（阳）',
+                yang: 0,
+                zhong: 70,
+                yin: 20,
+                float: '中',
+                effect: '击杀敌人后奴役其灵魂30秒',
+                mainAttr: '阳',
+                isRandom: false
+            },
+            // 龙葵叶系列
+            {
+                id: 'solanumLeafYin',
+                name: '龙葵叶（阴）',
+                yang: 10,
+                zhong: 20,
+                yin: 90,
+                float: '大',
+                effect: '60%概率附加冻伤效果',
+                mainAttr: '阴',
+                isRandom: false
+            },
+            {
+                id: 'solanumLeafZhong',
+                name: '龙葵叶（中）',
+                yang: 20,
+                zhong: 50,
+                yin: 20,
+                float: '大',
+                effect: '20%概率附加冻伤效果',
+                mainAttr: '中',
+                isRandom: false
+
+            },
+            {
+                id: 'solanumLeafYang',
+                name: '龙葵叶（阳）',
+                yang: 40,
+                zhong: 50,
+                yin: 10,
+                float: '大',
+                effect: '20%概率附加冻伤效果',
+                mainAttr: '阳',
+                isRandom: false
+            },
+            // 千年红叶系列（随机属性）
+            {
+                id: 'millenialRedYin',
+                name: '千年红叶（阴）',
+                yang: Math.floor(Math.random() * 51),
+                zhong: Math.floor(Math.random() * 101),
+                y极: 50 + Math.floor(Math.random() * 51),
+                float: '无',
+                effect: '提升25%暴击率',
+                mainAttr: '阴',
+                isRandom: true
+            },
+            {
+                id: 'millenialRedZhong',
+                name: '千年红叶（中）',
+                yang: Math.floor(Math.random() * 101),
+                zhong: Math.floor(Math.random() * 101),
+                yin: Math.floor(Math.random() * 101),
+                float: '无',
+                effect: '提升50%暴击率',
+                mainAttr: '中',
+                isRandom: true
+            },
+            {
+                id: 'millenialRedYang',
+                name: '千年红叶（阳）',
+                yang: 50 + Math.floor(Math.random() * 51),
+                zhong: Math.floor(Math.random() * 101),
+                yin: Math.floor(Math.random() * 51),
+                float: '无',
+                effect: '提升25%暴击率',
+                mainAttr: '阳',
+                isRandom: true
+            },
+            // 赤沙粉系列
+            {
+                id: 'redSandYin',
+                name: '赤沙粉（阴）',
+                yang: 30,
+                zhong: 30,
+                yin: 40,
+                float: '中',
+                effect: '伤害敌人时20%概率附加燃烧',
+                mainAttr: '阴',
+                isRandom: false
+            },
+            {
+                id: 'redSandZhong',
+                name: '赤沙粉（中）',
+                yang: 50,
+                zhong: 40,
+                yin: 30,
+                float: '中',
+                effect: '伤害敌人时20%概率附加燃烧',
+                mainAttr: '中',
+                isRandom: false
+            },
+            {
+                id: 'redSandYang',
+                name: '赤沙粉（阳）',
+                yang: 80,
+                zhong: 20,
+                yin: 10,
+                float: '中',
+                effect: '伤害敌人时60%概率附加燃烧',
+                mainAttr: '阳',
+                isRandom: false
+            },
+            // 不灭骨粉系列
+            {
+                id: 'immortalBoneYin',
+                name: '不灭骨粉（阴）',
+                yang: 20,
+                zhong: 20,
+                yin: 50,
+                float: '小',
+                effect: '生命值归零时立即回复一次性10%生命',
+                mainAttr: '阴',
+                isRandom: false
+            },
+            {
+                id: 'immortalBoneZhong',
+                name: '不灭骨粉（中）',
+                yang: 40,
+                zhong: 40,
+                yin: 40,
+                float: '小',
+                effect: '生命值归零时立即回复一次性30%生命',
+                mainAttr: '中',
+                isRandom: false
+            },
+            {
+                id: 'immortalBoneYang',
+                name: '不灭骨粉（阳）',
+                yang: 50,
+                zhong: 20,
+                yin: 20,
+                float: '小',
+                effect: '生命值归零时立即回复一次性10%生命',
+                mainAttr: '阳',
+                isRandom: false
+            },
+            // 硝石粉系列
+            {
+                id: 'nitreYin',
+                name: '硝石粉（阴）',
+                yang: 30,
+                zhong: 0,
+                yin: 80,
+                float: '中',
+                effect: '提升50%暴击伤害',
+                mainAttr: '阴',
+                isRandom: false
+            },
+            {
+                id: 'nitreZhong',
+                name: '硝石粉（中）',
+                yang: 50,
+                zhong: 0,
+                yin: 50,
+                float: '中',
+                effect: '提升50%暴击伤害',
+                mainAttr: '中',
+                isRandom: false
+            },
+            {
+                id: 'nitreYang',
+                name: '硝石粉（阳）',
+                yang: 80,
+                zhong: 0,
+                yin: 30,
+                float: '中',
+                effect: '提升75%暴击伤害',
+                mainAttr: '阳',
+                isRandom: false
+            }
+        ];
+
+        // 2. 配方数据
+        const recipesData = {
+            ironSword: {
+                id: 'ironSword',
+                name: '铁剑',
+                yang: 30,
+                zhong: 30,
+                yin: 30,
+                fixedEffect: '锋利（20%几率造成流血）',
+                unlockBy: null,
+                flashMaterials: ['fireCopperYin', 'fireCopperZhong', 'fireCopperYang', 'coldIronYin', 'coldIronZhong', 'coldIronYang'],
+                unlockHint: '若辅以火铜锭、寒铁锭的话...'
+            },
+            flameSword: {
+                id: 'flameSword',
+                name: '赤炎长剑',
+                yang: 90,
+                zhong: 20,
+                yin: 20,
+                fixedEffect: '火焰伤害50%加成',
+                unlockBy: {recipe: 'ironSword', material: ['fireCopperYin', 'fireCopperZhong', 'fireCopperYang']},
+                flashMaterials: ['nitreYin', 'nitreZhong', 'nitreYang', 'immortalBoneYin', 'immortalBoneZhong', 'immortalBoneYang'],
+                unlockHint: '若辅以硝石粉、不灭骨粉的话...'
+            },
+            darkIronSword: {
+                id: 'darkIronSword',
+                name: '玄铁剑',
+                yang: 20,
+                zhong: 20,
+                yin: 90,
+                fixedEffect: '格挡率提升30%',
+                unlockBy: {recipe: '极Sword', material: ['coldIronYin', 'coldIronZhong', 'coldIronYang']},
+                flashMaterials: ['solanumLeafYin', 'solanumLeafZhong', 'solanumLeafYang'],
+                unlockHint: '若辅以龙葵叶的话...'
+            },
+            endBlade: {
+                id: 'endBlade',
+                name: '终局锋刃',
+                yang: 80,
+                zhong: 10,
+                yin: 80,
+                fixedEffect: '暴击率提升25%，暴击伤害提升50%',
+                unlockBy: {recipe: 'flameSword', material: ['nitreYin', 'nitreZhong', 'nitreYang']},
+                flashMaterials: [],
+                unlockHint: '此配方无进一步解锁材料'
+            },
+            saveBlade: {
+                id: 'saveBlade',
+                name: '救主灵刃',
+                yang: 30,
+                zhong: 100,
+                yin: 30,
+                fixedEffect: '生命值低于30%时获得相当于最大生命值50%的护盾',
+                unlockBy: {recipe: 'flameSword', material: ['immortalBoneYin', 'immortalBoneZhong', 'immortalBoneYang']},
+                flashMaterials: [],
+                unlockHint: '此配方无进一步解锁材料'
+            },
+            solanumBlade: {
+                id: 'solanumBlade',
+                name: '龙葵剑',
+                yang: 10,
+                zhong: 50,
+                yin: 100,
+                fixedEffect: '对亡灵类敌人的伤害提升100%',
+                unlockBy: {recipe: 'darkIronSword', material: ['solanumLeafYin', 'solanumLeafZhong', 'solanumLeafYang']},
+                flashMaterials: [],
+                unlockHint: '此配方无进一步解锁材料'
+            }
+        };
+
+        // 3. 全局状态管理
+        const state = {
+            selectedRecipe: null,
+            selectedMaterials: {
+                base: null,
+                main: null,
+                aux: null
+            },
+            unlockedRecipes: ['ironSword'],
+            activeSlot: null,
+            playerAssets: 600,
+            playerMaterials: []
+        };
+
+        // 4. DOM元素获取
+        const elements = {
+            recipeList: document.getElementById('recipeList'),
+            playerAssetsValue: document.getElementById('playerAssetsValue'),
+            buyBtn: document.getElementById('buyBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            recipeSlot: document.getElementById('recipeSlot'),
+            recipeContent: document.getElementById('recipeContent'),
+            baseSlot: document.getElementById('baseSlot'),
+            baseContent: document.getElementById('baseContent'),
+            mainSlot: document.getElementById('mainSlot'),
+            mainContent: document.getElementById('mainContent'),
+            auxSlot: document.getElementById('auxSlot'),
+            auxContent: document.getElementById('auxContent'),
+            synthesizeBtn: document.getElementById('synthesizeBtn'),
+            materialsContainer: document.getElementById('materialsContainer'),
+            resultModal: document.getElementById('resultModal'),
+            resultName: document.getElementById('resultName'),
+            unlockNotice: document.getElementById('unlockNotice'),
+            consumedMaterials: document.getElementById('consumedMaterials'),
+            resultAttack: document.getElementById('resultAttack'),
+            resultDefense: document.getElementById('resultDefense'),
+            resultMagic: document.getElementById('resultMagic'),
+            resultEffects: document.getElementById('resultEffects'),
+            resultScore: document.getElementById('resultScore'),
+            closeBtn: document.getElementById('closeBtn')
+        };
+
+        // 5. 工具函数
+        function getLevelIndicator(value) {
+            if (value < 33) return '+';
+            if (value < 66) return '++';
+            return '+++';
+        }
+
+        function calculateFinalAttrs(recipe, base, main, aux) {
+            const baseEfficiency = {
+                yang: base.yang / 100,
+                zhong: base.zhong / 100,
+                yin: base.yin / 100
+            };
+
+            return {
+                yang: Math.round(recipe.yang + baseEfficiency.yang * 2 * main.yang + baseEfficiency.yang * aux.yang),
+                zhong: Math.round(recipe.zhong + baseEfficiency.zhong * 2 * main.zhong + baseEfficiency.zhong * aux.zhong),
+                yin: Math.round(recipe.yin + baseEfficiency.yin * 2 * main.yin + baseEfficiency.yin * aux.yin)
+            };
+        }
+
+        function getInheritedEffects(recipe, base, main, aux) {
+            const effects = [recipe.fixedEffect];
+            const materials = [main, aux];
+            let prevAttr = base.mainAttr;
+            
+            materials.forEach(material => {
+                if (material.mainAttr !== prevAttr) {
+                    effects.push(material.effect);
+                    prevAttr = material.mainAttr;
+                }
+            });
+
+            return effects;
+        }
+
+        function calculateScore(attrs, effects) {
+            const total = attrs.yang + attrs.zhong + attrs.yin + effects.length * 25;
+            
+            if (total < 250) return 'D';
+            if (total < 300) return 'C';
+            if (total < 350) return 'B';
+            if (total < 400) return 'A';
+            return 'S';
+        }
+
+        function checkRecipeUnlock(recipe, aux) {
+            for (const [recipeId, recipeData] of Object.entries(recipesData)) {
+                if (state.unlockedRecipes.includes(recipeId)) continue;
+                
+                const unlockCond = recipeData.unlockBy;
+                if (unlockCond && unlockCond.recipe === recipe.id && unlockCond.material.includes(aux.id)) {
+                    return recipeId;
+                }
+            }
+            return null;
+        }
+
+        function resetSynthesisTable() {
+            state.selectedRecipe = null;
+            state.selectedMaterials = {
+                base: null,
+                main: null,
+                aux: null
+            };
+            state.activeSlot = null;
+            
+            elements.recipeContent.textContent = '未选择';
+            elements.baseContent.textContent = '未选择';
+            elements.mainContent.textContent = '未选择';
+            elements.auxContent.textContent = '未选择';
+            
+            document.querySelectorAll('.recipe-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.material-item').forEach(el => {
+                el.classList.remove('flash');
+            });
+            document.querySelectorAll('.slot').forEach(el => el.classList.remove('active'));
+            elements.synthesizeBtn.disabled = true;
+        }
+
+        function updateMaterialFlash() {
+            document.querySelectorAll('.material-item').forEach(el => {
+                el.classList.remove('flash');
+            });
+            
+            if (state.activeSlot === 'aux' && state.selectedRecipe) {
+                state.selectedRecipe.flashMaterials.forEach(materialId => {
+                    const materialEl = document.querySelector(`.material-item[data-id="${materialId}"]`);
+                    if (materialEl) materialEl.classList.add('flash');
+                });
+            }
+        }
+
+        // 6. 页面初始化函数
+        function initMaterialsList() {
+            elements.materialsContainer.innerHTML = '';
+            
+            state.playerMaterials.forEach(material => {
+                let tooltipContent = `主属性: ${material.mainAttr}<br>`;
+                
+                if (material.isRandom) {
+                    tooltipContent += `阳: 随机<br>中: 随机<br>阴: 随机`;
+                } else {
+                    tooltipContent += `阳: ${getLevelIndicator(material.yang)}<br>`;
+                    tooltipContent += `中: ${getLevelIndicator(material.zhong)}<br>`;
+                    tooltipContent += `阴: ${getLevelIndicator(material.yin)}`;
+                }
+                
+                const materialEl = document.createElement('div');
+                materialEl.className = 'material-item';
+                materialEl.dataset.id = material.id;
+                materialEl.innerHTML = `
+                    <div class="material-name">${material.name}</div>
+                    <div class="material-tooltip">
+                        ${tooltipContent}
+                    </div>
+                `;
+                
+                materialEl.addEventListener('click', () => {
+                    if (!state.activeSlot || state.activeSlot === 'recipe') return;
+
+                    const slotType = state.activeSlot;
+                    state.selectedMaterials[slotType] = material;
+                    document.getElementById(`${slotType}Content`).textContent = material.name;
+                    document.getElementById(`${slotType}Slot`).classList.remove('active');
+                    state.activeSlot = null;
+                    
+                    checkSynthesizeBtnStatus();
+                    
+                    if (slotType === 'aux') {
+                        updateMaterialFlash();
+                    }
+                });
+                
+                elements.materialsContainer.appendChild(materialEl);
+            });
+        }
+
+        function initRecipeList() {
+            elements.recipeList.innerHTML = '';
+            
+            state.unlockedRecipes.forEach(recipeId => {
+                const recipe = recipesData[recipeId];
+                const recipeEl = document.createElement('li');
+                recipeEl.className = `recipe-item ${state.selectedRecipe?.id === recipeId ? 'active' : ''}`;
+                recipeEl.dataset.id = recipeId;
+                
+                // 构建配方提示内容
+                let tooltipContent = `基础属性：<br>阳: ${getLevelIndicator(recipe.yang)}<br>中: ${getLevelIndicator(recipe.zhong)}<br>阴: ${getLevelIndicator(recipe.yin)}`;
+                
+                // 添加解锁提示
+                tooltipContent += `<div class="unlock-hint">${recipe.unlockHint}</div>`;
+                
+                recipeEl.innerHTML = `
+                    ${recipe.name}
+                    <div class="recipe-tooltip">
+                        ${tooltipContent}
+                    </div>
+                `;
+                
+                recipeEl.addEventListener('click', () => {
+                    if (state.activeSlot === 'recipe') {
+                        state.selectedRecipe = recipe;
+                        elements.recipeContent.textContent = recipe.name;
+                        document.querySelectorAll('.recipe-item').forEach(el => el.classList.remove('active'));
+                        recipeEl.classList.add('active');
+                        elements.recipeSlot.classList.remove('active');
+                        state.activeSlot = null;
+                        checkSynthesizeBtnStatus();
+                    }
+                });
+                
+                elements.recipeList.appendChild(recipeEl);
+            });
+        }
+
+        function checkSynthesizeBtnStatus() {
+            const { selectedRecipe, selectedMaterials: { base, main, aux } } = state;
+            elements.synthesizeBtn.disabled = !(selectedRecipe && base && main && aux);
+        }
+
+        function handleBuyMaterials() {
+            if (state.playerAssets < 300) {
+                alert('资产不足，无法购买材料！');
+                return;
+            }
+            
+            state.playerAssets -= 300;
+            updatePlayerAssetsDisplay();
+            
+            const randomMaterials = [];
+            for (let i = 0; i < 3; i++) {
+                const randomIndex = Math.floor(Math.random() * materialsData.length);
+                const material = materialsData[randomIndex];
+                
+                if (material.isRandom) {
+                    const clonedMaterial = {...material};
+                    
+                    if (clonedMaterial.id === 'millenialRedYin') {
+                        clonedMaterial.yang = Math.floor(Math.random() * 51);
+                        clonedMaterial.zhong = Math.floor(Math.random() * 101);
+                        clonedMaterial.yin = 50 + Math.floor(Math.random() * 51);
+                    } else if (clonedMaterial.id === 'millenialRedZhong') {
+                        clonedMaterial.yang = Math.floor(Math.random() * 101);
+                        clonedMaterial.zhong = Math.floor(Math.random() * 101);
+                        clonedMaterial.yin = Math.floor(Math.random() * 101);
+                    } else if (clonedMaterial.id === 'millenialRedYang') {
+                        clonedMaterial.yang = 50 + Math.floor(Math.random() * 51);
+                        clonedMaterial.zhong = Math.floor(Math.random() * 101);
+                        clonedMaterial.yin = Math.floor(Math.random() * 51);
+                    }
+                    
+                    randomMaterials.push(clonedMaterial);
+                } else {
+                    randomMaterials.push({...material});
+                }
+            }
+            
+            state.playerMaterials.push(...randomMaterials);
+            initMaterialsList();
+        }
+
+        function updatePlayerAssetsDisplay() {
+            elements.playerAssetsValue.textContent = state.playerAssets;
+        }
+
+        // 7. 合成逻辑函数
+        function handleSynthesize() {
+            const { selectedRecipe: recipe, selectedMaterials: { base, main, aux } } = state;
+            
+            const finalAttrs = calculateFinalAttrs(recipe, base, main, aux);
+            const inheritedEffects = getInheritedEffects(recipe, base, main, aux);
+            const score = calculateScore(finalAttrs, inheritedEffects);
+            const unlockedRecipeId = checkRecipeUnlock(recipe, aux);
+            const isNewRecipeUnlocked = unlockedRecipeId && !state.unlockedRecipes.includes(unlockedRecipeId);
+            
+            elements.resultName.textContent = isNewRecipeUnlocked ? recipesData[unlockedRecipeId].name : recipe.name;
+            elements.resultAttack.textContent = finalAttrs.yang;
+            elements.resultDefense.textContent = finalAttrs.zhong;
+            elements.resultMagic.textContent = finalAttrs.yin;
+            
+            elements.resultEffects.innerHTML = '';
+            inheritedEffects.forEach(effect => {
+                const effectEl = document.createElement('li');
+                effectEl.textContent = effect;
+                elements.resultEffects.appendChild(effectEl);
+            });
+            
+            elements.resultScore.textContent = `评分：${score}`;
+            
+            if (isNewRecipeUnlocked) {
+                elements.unlockNotice.textContent = `解锁新配方【${recipesData[unlockedRecipeId].name}】，现可选择${recipesData[unlockedRecipeId].name}作为配方！`;
+                elements.unlockNotice.style.display = 'block';
+                state.unlockedRecipes.push(unlockedRecipeId);
+                initRecipeList();
+            } else {
+                elements.unlockNotice.style.display = 'none';
+            }
+            
+            // 显示消耗的材料
+            elements.consumedMaterials.textContent = `消耗材料：${base.name}、${main.name}、${aux.name}`;
+            elements.consumedMaterials.style.display = 'block';
+            
+            // 根据评分增加玩家资产
+            const scoreValues = {
+                'D': 300,
+                'C': 400,
+                'B': 500,
+                'A': 600,
+                'S': 1000
+            };
+            state.playerAssets += scoreValues[score];
+            updatePlayerAssetsDisplay();
+            
+            // 消耗材料
+            consumeMaterials(base, main, aux);
+            
+            elements.resultModal.style.display = 'flex';
+        }
+        
+        // 消耗材料函数
+        function consumeMaterials(base, main, aux) {
+            // 从玩家材料库中移除使用的材料
+            removeMaterialById(base.id);
+            removeMaterialById(main.id);
+            removeMaterialById(aux.id);
+            
+            // 更新材料库显示
+            initMaterialsList();
+        }
+        
+        // 根据ID移除材料
+        function removeMaterialById(materialId) {
+            const index = state.playerMaterials.findIndex(m => m.id === materialId);
+            if (index !== -1) {
+                state.playerMaterials.splice(index, 1);
+            }
+        }
+
+        // 8. 事件绑定
+        function bindEvents() {
+            [elements.recipeSlot, elements.baseSlot, elements.mainSlot, elements.auxSlot].forEach(slot => {
+                slot.addEventListener('click', () => {
+                    const slotType = slot.id.replace('Slot', '');
+                    
+                    if (slotType === 'recipe') {
+                        if (state.selectedRecipe) return;
+                    } else {
+                        if (!state.selectedRecipe) return;
+                    }
+                    
+                    document.querySelectorAll('.slot').forEach(el => el.classList.remove('active'));
+                    slot.classList.add('active');
+                    state.activeSlot = slotType;
+                    updateMaterialFlash();
+                });
+            });
+            
+            elements.resetBtn.addEventListener('click', resetSynthesisTable);
+            elements.synthesizeBtn.addEventListener('click', () => {
+                handleSynthesize();
+                setTimeout(resetSynthesisTable, 500);
+            });
+            elements.closeBtn.addEventListener('click', () => {
+                elements.resultModal.style.display = 'none';
+            });
+            elements.resultModal.addEventListener('click', (e) => {
+                if (e.target === elements.resultModal) {
+                    elements.resultModal.style.display = 'none';
+                }
+            });
+            elements.buyBtn.addEventListener('click', handleBuyMaterials);
+        }
+
+        // 9. 页面加载初始化
+        window.addEventListener('load', () => {
+            updatePlayerAssetsDisplay();
+            initMaterialsList();
+            initRecipeList();
+            bindEvents();
+        });
+    </script>
+</body>
+</html>
